@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Travelmantic</string>
+    <string name="description_hint">Description</string>
+    <string name="price_hint">Enter Price</string>
+    <string name="title_hint">Enter title</string>
+    <string name="save_menu">Save</string>
+    <string name="delete_deal">Delete Deal</string>
+</resources>
