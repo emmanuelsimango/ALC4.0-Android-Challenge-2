@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -15,9 +16,14 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.Continuation;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 public class DealActivity extends AppCompatActivity {
 
@@ -56,6 +62,7 @@ public class DealActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 Intent intent1 = new Intent(Intent.ACTION_GET_CONTENT);
+                intent1.setType("image/jpeg");
                 intent1.putExtra(Intent.EXTRA_LOCAL_ONLY,true);
                 startActivityForResult(intent1.createChooser(intent1,"Insert Picture"),PICTURE_RESULT);
             }
@@ -139,8 +146,38 @@ public class DealActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode==PICTURE_RESULT&&resultCode==RESULT_OK){
             Uri imageUri = data.getData();
-            StorageReference ref = FirebaseUtil.mStorageRef.child(imageUri.getLastPathSegment());
-            ref.putFile(imageUri);
+            final StorageReference ref = FirebaseUtil.mStorageRef.child(imageUri.getLastPathSegment());
+//            UploadTask uploadTask = ref.putFile(imageUri);
+//            UploadTask uploadTask = ref.putFile(imageUri);
+
+            Task<Uri> urlTask = ref.putFile(imageUri).continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
+                @Override
+                public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
+                    if (!task.isSuccessful()) {
+//                        throw task.getException();
+                        Toast.makeText(getBaseContext(),"Failed to upload image",Toast.LENGTH_LONG).show();
+                    }
+
+                    // Continue with the task to get the download URL
+                    return ref.getDownloadUrl();
+                }
+            }).addOnCompleteListener(new OnCompleteListener<Uri>() {
+                @Override
+                public void onComplete(@NonNull Task<Uri> task) {
+                    if (task.isSuccessful()) {
+                        Uri downloadUri = task.getResult();
+                        deal.setImageUrl(downloadUri.toString());
+                    } else {
+                        // Handle failures
+                        // ...
+                        Toast.makeText(getBaseContext(),"Failed to upload image",Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+
+            if(urlTask.isSuccessful())
+                Toast.makeText(this, "Succesfull", Toast.LENGTH_LONG).show();
+
         }
     }
 }
