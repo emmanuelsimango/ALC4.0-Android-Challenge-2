@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
+import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -14,6 +15,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.google.android.gms.tasks.Continuation;
@@ -24,6 +26,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.squareup.picasso.Picasso;
+
 
 public class DealActivity extends AppCompatActivity {
 
@@ -34,7 +38,7 @@ public class DealActivity extends AppCompatActivity {
    EditText txtDescription;
    EditText txtPrice;
     private TravelDeal deal;
-
+    ImageView imageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,7 +49,7 @@ public class DealActivity extends AppCompatActivity {
         txtTitle = findViewById(R.id.txtTitle);
         txtPrice = findViewById(R.id.txtPrice);
         txtDescription = findViewById(R.id.txtDescription);
-
+        imageView = findViewById(R.id.imageDeal);
 
         final Intent intent  = getIntent();
         TravelDeal deal = (TravelDeal)intent.getSerializableExtra("Deal");
@@ -57,7 +61,8 @@ public class DealActivity extends AppCompatActivity {
         txtPrice.setText(deal.getPrice());
         txtDescription.setText(deal.getDescription());
         Button btnImage = findViewById(R.id.btnImage);
-
+        showImage(deal.getImageUrl());
+        btnImage.setVisibility(FirebaseUtil.isAdmin?View.VISIBLE:View.INVISIBLE);
         btnImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -145,6 +150,7 @@ public class DealActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode==PICTURE_RESULT&&resultCode==RESULT_OK){
+            assert data != null;
             Uri imageUri = data.getData();
             final StorageReference ref = FirebaseUtil.mStorageRef.child(imageUri.getLastPathSegment());
 //            UploadTask uploadTask = ref.putFile(imageUri);
@@ -167,6 +173,7 @@ public class DealActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         Uri downloadUri = task.getResult();
                         deal.setImageUrl(downloadUri.toString());
+                        showImage(downloadUri.toString());
                     } else {
                         // Handle failures
                         // ...
@@ -175,9 +182,23 @@ public class DealActivity extends AppCompatActivity {
                 }
             });
 
-            if(urlTask.isSuccessful())
+            if(urlTask.isSuccessful()){
                 Toast.makeText(this, "Succesfull", Toast.LENGTH_LONG).show();
 
+            }
+
+        }
+    }
+
+    private void showImage(String url){
+
+        if(url!=null && !url.isEmpty()){
+            int width = Resources.getSystem().getDisplayMetrics().widthPixels;
+            Picasso.get()
+                    .load(url)
+                    .resize(width,width*2/3)
+                    .centerCrop()
+                    .into(imageView);
         }
     }
 }
